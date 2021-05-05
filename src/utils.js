@@ -1,5 +1,5 @@
 var sha3 = require('js-sha3').keccak_256
-var namehash = require('eth-ens-namehash')
+var namehash = require('vap-vns-namehash')
 
 module.exports = {
   fromHex: function(x) {

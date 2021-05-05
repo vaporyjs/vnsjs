@@ -1,29 +1,29 @@
-var ENS = require('../index.js');
-var web3Utils = require('web3-utils');
+var VNS = require('../index.js');
+var web3Utils = require('@vapory/web3-utils');
 var assert = require('assert');
 var fs = require('fs');
-var solc = require('solc');
-var TestRPC = require('ganache-cli');
+var solc = require('@vapory/solc');
+var TestRPC = require('@moxiesuite/ganache-cli');
 
 var niv = require('npm-install-version');
-niv.install('web3@1.0.0-beta.34');
-niv.install('web3@0.20.6');
+niv.install('@vapory/web3@1.0.0-delta.30');
+niv.install('@vapory/web3@0.20.4-b');
 
-var Web3_0 = niv.require('web3@0.20.6');
-var Web3_1 = niv.require('web3@1.0.0-beta.34');
+var Web3_0 = niv.require('@vapory/web3@0.20.4-b');
+var Web3_1 = niv.require('@vapory/web3@1.0.0-delta.30');
 
-var ens = null;
-var ensRoot = null;
+var vns = null;
+var vnsRoot = null;
 var accounts = null;
-var deployens = null;
-var deployensAddress = null;
+var deployvns = null;
+var deployvnsAddress = null;
 var web3 = null;
 
 var registryInterface = [{"constant":true,"inputs":[{"name":"node","type":"bytes32"}],"name":"resolver","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"node","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"node","type":"bytes32"},{"name":"resolver","type":"address"}],"name":"setResolver","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"node","type":"bytes32"},{"name":"label","type":"bytes32"},{"name":"owner","type":"address"}],"name":"setSubnodeOwner","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"node","type":"bytes32"},{"name":"owner","type":"address"}],"name":"setOwner","outputs":[],"type":"function"}];
 
 
 // suppressing MaxEventListeners error as we are adding many listeners
-// to the same web3 provider's "data" event for multiple ENS instances
+// to the same web3 provider's "data" event for multiple VNS instances
 // https://github.com/ethereum/web3.js/blob/1.0/packages/web3-core-requestmanager/src/index.js#L98
 require('events').EventEmitter.prototype._maxListeners = 100;
 
@@ -34,22 +34,22 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 		if (typeof afterHook === 'function') after(afterHook);
 		describe('#resolve()', function() {
 			it('should get resolver addresses', function(done) {
-				ens.resolver('foo.eth').resolverAddress().then(function(addr) {
+				vns.resolver('foo.vap').resolverAddress().then(function(addr) {
 					assert.notEqual(addr, '0x0000000000000000000000000000000000000000');
 					done();
 				}).catch(assert.ifError);
 			});
 
 			it('should resolve names', function(done) {
-				ens.resolver('foo.eth').addr()
+				vns.resolver('foo.vap').addr()
 				.then(function(result) {
-					assert.equal(result, deployensAddress);
+					assert.equal(result, deployvnsAddress);
 					done();
 				}).catch(assert.ifError);
 			});
 
 			it('should implement has()', function(done) {
-				var resolver = ens.resolver('foo.eth');
+				var resolver = vns.resolver('foo.vap');
 				Promise.all([
 					resolver.has(web3Utils.asciiToHex('addr'))
 					.then(function(result) {
@@ -63,7 +63,7 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 			});
 
 			it('should error when the name record does not exist', function(done) {
-				ens.resolver('bar.eth').addr()
+				vns.resolver('bar.vap').addr()
 				.catch(function(err) {
 					assert.ok(err.toString().indexOf('invalid JUMP') != -1, err);
 					done();
@@ -71,15 +71,15 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 			});
 
 			it('should error when the name does not exist', function(done) {
-				ens.resolver('quux.eth').addr()
+				vns.resolver('quux.vap').addr()
 				.catch(function(err) {
-					assert.equal(err, ENS.NameNotFound);
+					assert.equal(err, VNS.NameNotFound);
 					done();
 				});
 			});
 
 			it('should permit name updates', function(done) {
-				var resolver = ens.resolver('bar.eth')
+				var resolver = vns.resolver('bar.vap')
 				resolver.setAddr('0x0000000000000000000000000000000000012345', {from: accounts[0]})
 				.then(function(result) {
 					return resolver.addr()
@@ -91,17 +91,17 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 			});
 
 			it('should do reverse resolution', function(done) {
-				var resolver = ens.resolver('foo.eth');
+				var resolver = vns.resolver('foo.vap');
 				resolver.reverseAddr().then(function(reverse) {
 					return reverse.name().then(function(result) {
-						assert.equal(result, "deployer.eth");
+						assert.equal(result, "deployer.vap");
 						done();
 					});
 				}).catch(assert.isError);
 			});
 
 			it('should fetch ABIs from names', function(done) {
-				ens.resolver('foo.eth').abi()
+				vns.resolver('foo.vap').abi()
 				.then(function(abi) {
 					assert.equal(abi.length, 2);
 					assert.equal(abi[0].name, "test2");
@@ -110,7 +110,7 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 			});
 
 			it('should fetch ABIs from reverse records', function(done) {
-				ens.resolver('baz.eth').abi().then(function(abi) {
+				vns.resolver('baz.vap').abi().then(function(abi) {
 					assert.equal(abi.length, 2);
 					assert.equal(abi[0].name, "test");
 					done();
@@ -118,7 +118,7 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 			});
 
 			it('should fetch contract instances', function(done) {
-				ens.resolver('baz.eth').contract().then(function(contract) {
+				vns.resolver('baz.vap').contract().then(function(contract) {
 					assert.ok(contract.test != undefined || contract.methods.test != undefined);
 					done();
 				}).catch(assert.isError);
@@ -127,7 +127,7 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 
 		describe('#owner()', function() {
 			it('should return owner values', function(done) {
-				ens.owner('bar.eth').then(function(result) {
+				vns.owner('bar.vap').then(function(result) {
 					assert.equal(result, accounts[0]);
 					done();
 				}).catch(assert.isError);
@@ -136,8 +136,8 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 
 		describe("#setSubnodeOwner", function() {
 			it('should permit setting subnode owners', function(done) {
-				ens.setSubnodeOwner('BAZ.bar.eth', accounts[0], {from: accounts[0]}).then(function(txid) {
-					return ens.owner('baz.bar.eth').then(function(owner) {
+				vns.setSubnodeOwner('BAZ.bar.vap', accounts[0], {from: accounts[0]}).then(function(txid) {
+					return vns.owner('baz.bar.vap').then(function(owner) {
 						assert.equal(owner, accounts[0]);
 						done();
 					});
@@ -148,8 +148,8 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 		describe("#setResolver", function() {
 			it('should permit resolver updates', function(done) {
 				var addr = '0x2341234123412341234123412341234123412341';
-				ens.setResolver('baz.bar.eth', addr, {from: accounts[0]}).then(function(txid) {
-					return ens.resolver('baz.bar.eth').resolverAddress().then(function(address) {
+				vns.setResolver('baz.bar.vap', addr, {from: accounts[0]}).then(function(txid) {
+					return vns.resolver('baz.bar.vap').resolverAddress().then(function(address) {
 						assert.equal(address, addr);
 						done();
 					});
@@ -160,9 +160,9 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 		describe("#setOwner", function() {
 			it('should permit owner updates', function(done) {
 				var addr = '0x3412341234123412341234123412341234123412';
-				ens.setOwner('baz.bar.eth', addr, {from: accounts[0]})
+				vns.setOwner('baz.bar.vap', addr, {from: accounts[0]})
 				.then(function(txid) {
-					return ens.owner('baz.bar.eth').then(function(owner) {
+					return vns.owner('baz.bar.vap').then(function(owner) {
 						assert.equal(owner, addr);
 						done();
 					});
@@ -172,9 +172,9 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 
 		describe("#reverse", function() {
 			it('should look up reverse DNS records', function(done) {
-				ens.reverse(deployensAddress).name()
+				vns.reverse(deployvnsAddress).name()
 				.then(function(result) {
-					assert.equal(result, 'deployer.eth');
+					assert.equal(result, 'deployer.vap');
 					done();
 				}).catch(assert.isError);
 			});
@@ -182,7 +182,7 @@ var testSuiteGenerator = function(beforeHook, afterHook) {
 	}
 }
 
-describe('ENS (Web3 1.x)', testSuiteGenerator(
+describe('VNS (Web3 1.x)', testSuiteGenerator(
 	function(done) {
 		if (web3 === null) {
 			web3 = new Web3_1();
@@ -190,16 +190,16 @@ describe('ENS (Web3 1.x)', testSuiteGenerator(
 		this.timeout(20000);
 		web3.setProvider(TestRPC.provider());
 		//web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
-		web3.eth.getAccounts(function(err, acct) {
+		web3.vap.getAccounts(function(err, acct) {
 			if (acct) accounts = acct;
-			var source = fs.readFileSync('test/ens.sol').toString();
+			var source = fs.readFileSync('test/vns.sol').toString();
 			var compiled = solc.compile(source, 1);
 			assert.equal(compiled.errors, undefined);
-			var deployer = compiled.contracts[':DeployENS'];
-			var deployensContract = new web3.eth.Contract(JSON.parse(deployer.interface));
+			var deployer = compiled.contracts[':DeployVNS'];
+			var deployvnsContract = new web3.vap.Contract(JSON.parse(deployer.interface));
 
 			// Deploy the contract
-			deployensContract.deploy({
+			deployvnsContract.deploy({
 				data: deployer.bytecode
 			})
 			.send({
@@ -208,15 +208,15 @@ describe('ENS (Web3 1.x)', testSuiteGenerator(
 			})
 			.on('error', function(err) { assert.ifError(err); })
 			.then(function(newContractInstance) {
-				deployens = newContractInstance;
-				if (deployens.options.address != undefined) {
-					deployens.methods.ens().call().then(function(value) {
-						ensRoot = value;
-						if (ens && ens.web3) {
-							ens.web3.reset();
+				deployvns = newContractInstance;
+				if (deployvns.options.address != undefined) {
+					deployvns.methods.vns().call().then(function(value) {
+						vnsRoot = value;
+						if (vns && vns.web3) {
+							vns.web3.reset();
 						}
-						ens = new ENS(web3.currentProvider, ensRoot, Web3_1);
-						deployensAddress = deployens.address || deployens._address;
+						vns = new VNS(web3.currentProvider, vnsRoot, Web3_1);
+						deployvnsAddress = deployvns.address || deployvns._address;
 						done();
 					}).catch(function(err) {
 						assert.ifError(err);
@@ -229,33 +229,33 @@ describe('ENS (Web3 1.x)', testSuiteGenerator(
 		});
 	},
 	function() {
-		ens = null;
-		ensRoot = null;
+		vns = null;
+		vnsRoot = null;
 		accounts = null;
-		deployens = null;
-		deployensAddress = null;
+		deployvns = null;
+		deployvnsAddress = null;
 		web3 = null;
 	}
 ));
 
 
-describe('ENS (Web3 0.x)', testSuiteGenerator(function(done) {
+describe('VNS (Web3 0.x)', testSuiteGenerator(function(done) {
 	this.timeout(20000);
 	if (web3 === null) {
 		web3 = new Web3_0();
 	}
 	web3.setProvider(TestRPC.provider());
 	//web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
-	web3.eth.getAccounts(function(err, acct) {
+	web3.vap.getAccounts(function(err, acct) {
 		accounts = acct
-		var source = fs.readFileSync('test/ens.sol').toString();
+		var source = fs.readFileSync('test/vns.sol').toString();
 		var compiled = solc.compile(source, 1);
 		assert.equal(compiled.errors, undefined);
-		var deployer = compiled.contracts[':DeployENS'];
-		var deployensContract = web3.eth.contract(JSON.parse(deployer.interface));
+		var deployer = compiled.contracts[':DeployVNS'];
+		var deployvnsContract = web3.vap.contract(JSON.parse(deployer.interface));
 
 		// Deploy the contract
-		deployens = deployensContract.new(
+		deployvns = deployvnsContract.new(
 		   {
 		     from: accounts[0],
 		     data: deployer.bytecode,
@@ -263,12 +263,12 @@ describe('ENS (Web3 0.x)', testSuiteGenerator(function(done) {
 		   }, function(err, contract) {
 		   	    assert.equal(err, null, err);
 		   	    if(contract.address != undefined) {
-		   	    	// Fetch the address of the ENS registry
-		   	 		contract.ens.call(function(err, value) {
+		   	    	// Fetch the address of the VNS registry
+		   	 		contract.vns.call(function(err, value) {
 		   	 			assert.equal(err, null, err);
-		   	 			ensRoot = value;
-							ens = new ENS(web3.currentProvider, ensRoot, Web3_0);
-							deployensAddress = deployens.address || deployens._address;
+		   	 			vnsRoot = value;
+							vns = new VNS(web3.currentProvider, vnsRoot, Web3_0);
+							deployvnsAddress = deployvns.address || deployvns._address;
 		   	 			done();
 		   	 		});
 			   	 }

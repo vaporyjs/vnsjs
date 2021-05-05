@@ -1,42 +1,42 @@
 {
-  "name": "ethereum-ens",
+  "name": "vapory-vns",
   "version": "0.8.0",
-  "homepage": "https://github.com/Arachnid/ensjs#readme",
-  "description": "Javascript bindings for the Ethereum Name Service",
+  "homepage": "https://github.com/vaporys/vnsjs#readme",
+  "description": "Javascript bindings for the Vapory Name Service",
   "main": "index.js",
   "scripts": {
     "test": "mocha"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Arachnid/ensjs.git"
+    "url": "git+https://github.com/vaporyjs/vnsjs.git"
   },
   "keywords": [
-    "ethereum",
-    "ens",
+    "vapory",
+    "vns",
     "nameserver"
   ],
   "author": "Nick Johnson",
-  "license": "LGPL-3.0",
+  "licvnse": "LGPL-3.0",
   "bugs": {
-    "url": "https://github.com/Arachnid/ensjs/issues"
+    "url": "https://github.com/vaporyjs/vnsjs/issues"
   },
   "directories": {
     "test": "test"
   },
   "dependencies": {
     "bluebird": "^3.4.7",
-    "eth-ens-namehash": "^2.0.0",
+    "vap-vns-namehash": "^2.0.0",
     "js-sha3": "^0.5.7",
     "pako": "^1.0.4",
     "underscore": "^1.8.3",
-    "web3": "^1.0.0-beta.34"
+    "@vapory/web3": "^1.0.0-delta.30"
   },
   "devDependencies": {
-    "ganache-cli": "^6.4.1",
+    "@moxiesuite/ganache-cli": "^6.0.3",
     "mocha": "^3.0.2",
     "npm-install-version": "^6.0.2",
-    "solc": "0.4.9",
-    "web3-utils": "^1.0.0-beta.47"
+    "@vapory/solc": "0.4.19-a",
+    "@vapory/web3-utils": "^1.0.0-delta.30"
   }
 }

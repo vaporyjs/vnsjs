@@ -1,22 +1,22 @@
 /*
-    This file is part of ethereum-ens.
-    ethereum-ens is free software: you can redistribute it and/or modify
+    This file is part of vapory-vns.
+    vapory-vns is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-    ethereum-ens is distributed in the hope that it will be useful,
+    vapory-vns is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Lesser General Public License for more details.
     You should have received a copy of the GNU Lesser General Public License
-    along with ethereum-ens.  If not, see <http://www.gnu.org/licenses/>.
+    along with vapory-vns.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-var namehash = require('eth-ens-namehash')
+var namehash = require('vap-vns-namehash')
 var pako = require('pako');
 var Promise = require('bluebird');
 var _ = require('underscore');
-var Web3 = require('web3');
+var Web3 = require('@vapory/web3');
 var utils = require('./src/utils.js');
 var abi = require('./src/abi.js');
 
@@ -48,32 +48,32 @@ var abiDecoders = {
 var supportedDecoders = _.reduce(_.keys(abiDecoders), function(memo, val) { return memo | val; });
 
 /**
- * Wrapper function that returns a version of ENS that is compatible
+ * Wrapper function that returns a version of VNS that is compatible
  * with the provided version of Web3
  */
-function ENS (provider, address, Web3js) {
+function VNS (provider, address, Web3js) {
   if (Web3js !== undefined) {
     Web3 = Web3js;
   }
   if (!!/^0\./.exec(Web3.version || (new Web3(provider)).version.api)) {
-    return utils.construct(ENS_0, [provider, address]);
+    return utils.construct(VNS_0, [provider, address]);
   } else {
-    return utils.construct(ENS_1, [provider, address]);
+    return utils.construct(VNS_1, [provider, address]);
   }
 }
 
-ENS.NameNotFound = Error("ENS name not found");
+VNS.NameNotFound = Error("VNS name not found");
 
 /**
  * @class
  */
-function Resolver_1(ens, node, contract) {
-    this.ens = ens;
+function Resolver_1(vns, node, contract) {
+    this.vns = vns;
     this.node = node;
-    this.instancePromise = ens.registryPromise.then(function(registry) {
+    this.instancePromise = vns.registryPromise.then(function(registry) {
       return registry.methods.resolver(node).call().then(function(address) {
         if(address == "0x0000000000000000000000000000000000000000") {
-          return Promise.reject(ENS.NameNotFound);
+          return Promise.reject(VNS.NameNotFound);
         }
 
         contract.options.address = address;
@@ -104,7 +104,7 @@ function Resolver_1(ens, node, contract) {
               if (asyncObj.inputs.length < args.length + 1) {
                 params = args.splice(args.length - 1)[0];
               }
-              return ens.web3.eth.getAccounts().then(function(accounts) {
+              return vns.web3.vap.getAccounts().then(function(accounts) {
                 return _.partial(instance.methods[signature], node).apply(instance.methods, args).send(params ? params : {from: accounts[0]});
               })
             }
@@ -129,7 +129,7 @@ Resolver_1.prototype.resolverAddress = function() {
  */
 Resolver_1.prototype.reverseAddr = function() {
     return this.addr().then(function(addr) {
-      return this.ens.reverse(addr);
+      return this.vns.reverse(addr);
     }).bind(this);
 }
 
@@ -163,24 +163,24 @@ Resolver_1.prototype.abi = function(reverse) {
  */
 Resolver_1.prototype.contract = function() {
   return Promise.join(this.abi(), this.addr(), function(abi, addr) {
-    return new this.ens.web3.eth.Contract(abi, addr);
+    return new this.vns.web3.vap.Contract(abi, addr);
   }.bind(this));
 };
 
 /**
  * @class
  *
- * @description Provides an easy-to-use interface to the Ethereum Name Service.
+ * @description Provides an easy-to-use interface to the Vapory Name Service.
  *
  * Example usage:
  *
- *     var ENS = require('ethereum-ens');
- *     var Web3 = require('web3');
+ *     var VNS = require('vapory-vns');
+ *     var Web3 = require('@vapory/web3');
  *
  *     var web3 = new Web3();
- *     var ens = new ENS(web3);
+ *     var vns = new VNS(web3);
  *
- *     var address = ens.resolver('foo.eth').addr().then(function(addr) { ... });
+ *     var address = vns.resolver('foo.vap').addr().then(function(addr) { ... });
  *
  * Functions that require communicating with the node return promises, rather than
  * using callbacks. A promise has a `then` function, which takes a callback and will
@@ -194,27 +194,27 @@ Resolver_1.prototype.contract = function() {
  * Functions that create transactions also take an optional 'options' argument;
  * this has the same parameters as web3.
  *
- * @author Nick Johnson <nick@ethereum.org>
+ * @author Nick Johnson <nick@vapory.org>
  * @date 2016
  * @license LGPL
  *
  * @param {object} provider A web3 provider to use to communicate with the blockchain.
- * @param {address} address Optional. The address of the ENS registry. Defaults to the public ENS registry.
+ * @param {address} address Optional. The address of the VNS registry. Defaults to the public VNS registry.
  */
-function ENS_1(provider, address) {
+function VNS_1(provider, address) {
     // Ensures backwards compatibility
     if (provider.currentProvider) {
         provider = provider.currentProvider;
     }
 
     this.web3 = new Web3(provider);
-    var registryContract = new this.web3.eth.Contract(registryInterface);
+    var registryContract = new this.web3.vap.Contract(registryInterface);
     if (address != undefined) {
       registryContract.options.address = address;
       this.registryPromise = Promise.resolve(registryContract);
     } else {
       this.registryPromise = new Promise((resolve) => {
-        this.web3.eth.net.getId().then(function(version) {
+        this.web3.vap.net.getId().then(function(version) {
             registryContract.options.address = registryAddresses[version];
             resolve(registryContract);
         });
@@ -222,13 +222,13 @@ function ENS_1(provider, address) {
     }
 }
 
-ENS_1.NameNotFound = Error("ENS name not found");
+VNS_1.NameNotFound = Error("VNS name not found");
 
 /**
  * resolver returns a resolver object for the specified name, throwing
- * ENS.NameNotFound if the name does not exist in ENS.
+ * VNS.NameNotFound if the name does not exist in VNS.
  * Resolver objects are wrappers around web3 contract objects, with the
- * first argument - always the node ID in an ENS resolver - automatically
+ * first argument - always the node ID in an VNS resolver - automatically
  * supplied. So, to call the `addr(node)` function on a standard resolver,
  * you only have to call `addr()`. Returned objects are also 'promisified' - they
  * return a Bluebird Promise object instead of taking a callback.
@@ -238,17 +238,17 @@ ENS_1.NameNotFound = Error("ENS name not found");
  *        `setName` and `setAddr` is supplied.
  * @returns The resolver object.
  */
-ENS_1.prototype.resolver = function(name, abi) {
+VNS_1.prototype.resolver = function(name, abi) {
     abi = abi || resolverInterface;
     var node = namehash.hash(name);
-    return new Resolver_1(this, node, new this.web3.eth.Contract(abi));
+    return new Resolver_1(this, node, new this.web3.vap.Contract(abi));
 };
 
 /**
  * reverse returns a resolver object for the reverse resolution of the specified address,
- * throwing ENS.NameNotFound if the reverse record does not exist in ENS.
+ * throwing VNS.NameNotFound if the reverse record does not exist in VNS.
  * Resolver objects are wrappers around web3 contract objects, with the
- * first argument - always the node ID in an ENS resolver - automatically
+ * first argument - always the node ID in an VNS resolver - automatically
  * supplied. So, to call the `addr(node)` function on a standard resolver,
  * you only have to call `addr()`. Returned objects are also 'promisified' - they
  * return a Bluebird Promise object instead of taking a callback.
@@ -258,7 +258,7 @@ ENS_1.prototype.resolver = function(name, abi) {
  *        `setName` and `setAddr` is supplied.
  * @returns The resolver object.
  */
-ENS_1.prototype.reverse = function(address, abi) {
+VNS_1.prototype.reverse = function(address, abi) {
     if(address.startsWith("0x"))
       address = address.slice(2);
     return this.resolver(address.toLowerCase() + ".addr.reverse", abi);
@@ -273,11 +273,11 @@ ENS_1.prototype.reverse = function(address, abi) {
  * @param {object} options An optional dict of parameters to pass to web3.
  * @returns A promise that returns the transaction ID when the transaction is mined.
  */
-ENS_1.prototype.setResolver = function(name, addr, params) {
+VNS_1.prototype.setResolver = function(name, addr, params) {
     var node = namehash.hash(name);
 
     return this.registryPromise.then(function(registry) {
-      return this.web3.eth.getAccounts().then(function(accounts) {
+      return this.web3.vap.getAccounts().then(function(accounts) {
         return registry.methods.setResolver(node, addr).send(params ? params : {from: accounts[0]});
       });
     }.bind(this));
@@ -288,7 +288,7 @@ ENS_1.prototype.setResolver = function(name, addr, params) {
  * @param {string} name The name to look up.
  * @returns A promise returning the owner address of the specified name.
  */
-ENS_1.prototype.owner = function(name, callback) {
+VNS_1.prototype.owner = function(name, callback) {
     var node = namehash.hash(name);
 
     return this.registryPromise.then(function(registry) {
@@ -305,10 +305,10 @@ ENS_1.prototype.owner = function(name, callback) {
  * @param {object} options An optional dict of parameters to pass to web3.
  * @returns A promise returning the transaction ID of the transaction, once mined.
  */
-ENS_1.prototype.setOwner = function(name, addr, params) {
+VNS_1.prototype.setOwner = function(name, addr, params) {
     var node = namehash.hash(name);
     return this.registryPromise.then(function(registry) {
-      return this.web3.eth.getAccounts().then(function(accounts) {
+      return this.web3.vap.getAccounts().then(function(accounts) {
         return registry.methods.setOwner(node, addr).send(params ? params : {from: accounts[0]});
       });
     }.bind(this));
@@ -317,18 +317,18 @@ ENS_1.prototype.setOwner = function(name, addr, params) {
 /**
  * setSubnodeOwner sets the owner of the specified name. The calling account
  * must be the owner of the parent name in order for this call to succeed -
- * for example, to call setSubnodeOwner on 'foo.bar.eth', the caller must be
- * the owner of 'bar.eth'.
+ * for example, to call setSubnodeOwner on 'foo.bar.vap', the caller must be
+ * the owner of 'bar.vap'.
  * @param {string} name The name to update
  * @param {address} address The address of the new owner
  * @param {object} options An optional dict of parameters to pass to web3.
  * @returns A promise returning the transaction ID of the transaction, once mined.
  */
-ENS_1.prototype.setSubnodeOwner = function(name, addr, params) {
+VNS_1.prototype.setSubnodeOwner = function(name, addr, params) {
     var node = utils.parentNamehash(name);
 
     return this.registryPromise.then(function(registry) {
-      return this.web3.eth.getAccounts().then(function(accounts) {
+      return this.web3.vap.getAccounts().then(function(accounts) {
         return registry.methods.setSubnodeOwner(node[1], node[0], addr).send(params ? params : {from: accounts[0]});
       });
     }.bind(this));
@@ -341,13 +341,13 @@ ENS_1.prototype.setSubnodeOwner = function(name, addr, params) {
 /**
  * @class
  */
-function Resolver_0(ens, node, contract) {
-    this.ens = ens;
+function Resolver_0(vns, node, contract) {
+    this.vns = vns;
     this.node = node;
-    this.instancePromise = ens.registryPromise.then(function(registry) {
+    this.instancePromise = vns.registryPromise.then(function(registry) {
       return registry.resolverAsync(node).then(function(address) {
         if(address == "0x0000000000000000000000000000000000000000") {
-          return Promise.reject(ENS.NameNotFound);
+          return Promise.reject(VNS.NameNotFound);
         }
         return Promise.promisifyAll(contract.at(address));
       });
@@ -379,7 +379,7 @@ Resolver_0.prototype.resolverAddress = function() {
  */
 Resolver_0.prototype.reverseAddr = function() {
     return this.addr().then(function(addr) {
-      return this.ens.reverse(addr);
+      return this.vns.reverse(addr);
     }).bind(this);
 }
 
@@ -413,24 +413,24 @@ Resolver_0.prototype.abi = function(reverse) {
  */
 Resolver_0.prototype.contract = function() {
   return Promise.join(this.abi(), this.addr(), function(abi, addr) {
-    return this.ens.web3.eth.contract(abi).at(addr);
+    return this.vns.web3.vap.contract(abi).at(addr);
   }.bind(this));
 };
 
 /**
  * @class
  *
- * @description Provides an easy-to-use interface to the Ethereum Name Service.
+ * @description Provides an easy-to-use interface to the Vapory Name Service.
  *
  * Example usage:
  *
- *     var ENS = require('ethereum-ens');
- *     var Web3 = require('web3');
+ *     var VNS = require('vapory-vns');
+ *     var Web3 = require('@vapory/web3');
  *
  *     var web3 = new Web3();
- *     var ens = new ENS(web3);
+ *     var vns = new VNS(web3);
  *
- *     var address = ens.resolver('foo.eth').addr().then(function(addr) { ... });
+ *     var address = vns.resolver('foo.vap').addr().then(function(addr) { ... });
  *
  * Functions that require communicating with the node return promises, rather than
  * using callbacks. A promise has a `then` function, which takes a callback and will
@@ -444,21 +444,21 @@ Resolver_0.prototype.contract = function() {
  * Functions that create transactions also take an optional 'options' argument;
  * this has the same parameters as web3.
  *
- * @author Nick Johnson <nick@ethereum.org>
+ * @author Nick Johnson <nick@vapory.org>
  * @date 2016
  * @license LGPL
  *
  * @param {object} provider A web3 provider to use to communicate with the blockchain.
- * @param {address} address Optional. The address of the ENS registry. Defaults to the public ENS registry.
+ * @param {address} address Optional. The address of the VNS registry. Defaults to the public VNS registry.
  */
-function ENS_0(provider, address) {
+function VNS_0(provider, address) {
     // Ensures backwards compatibility
     if (provider.currentProvider) {
         provider = provider.currentProvider;
     }
 
     this.web3 = new Web3(provider);
-    var registryContract = this.web3.eth.contract(registryInterface);
+    var registryContract = this.web3.vap.contract(registryInterface);
     if(address != undefined) {
       this.registryPromise = Promise.resolve(Promise.promisifyAll(registryContract.at(address)));
     } else {
@@ -468,13 +468,13 @@ function ENS_0(provider, address) {
     }
 }
 
-ENS_0.NameNotFound = Error("ENS name not found");
+VNS_0.NameNotFound = Error("VNS name not found");
 
 /**
  * resolver returns a resolver object for the specified name, throwing
- * ENS.NameNotFound if the name does not exist in ENS.
+ * VNS.NameNotFound if the name does not exist in VNS.
  * Resolver objects are wrappers around web3 contract objects, with the
- * first argument - always the node ID in an ENS resolver - automatically
+ * first argument - always the node ID in an VNS resolver - automatically
  * supplied. So, to call the `addr(node)` function on a standard resolver,
  * you only have to call `addr()`. Returned objects are also 'promisified' - they
  * return a Bluebird Promise object instead of taking a callback.
@@ -484,17 +484,17 @@ ENS_0.NameNotFound = Error("ENS name not found");
  *        `setName` and `setAddr` is supplied.
  * @returns The resolver object.
  */
-ENS_0.prototype.resolver = function(name, abi) {
+VNS_0.prototype.resolver = function(name, abi) {
     abi = abi || resolverInterface;
     var node = namehash.hash(name);
-    return new Resolver_0(this, node, this.web3.eth.contract(abi));
+    return new Resolver_0(this, node, this.web3.vap.contract(abi));
 };
 
 /**
  * reverse returns a resolver object for the reverse resolution of the specified address,
- * throwing ENS.NameNotFound if the reverse record does not exist in ENS.
+ * throwing VNS.NameNotFound if the reverse record does not exist in VNS.
  * Resolver objects are wrappers around web3 contract objects, with the
- * first argument - always the node ID in an ENS resolver - automatically
+ * first argument - always the node ID in an VNS resolver - automatically
  * supplied. So, to call the `addr(node)` function on a standard resolver,
  * you only have to call `addr()`. Returned objects are also 'promisified' - they
  * return a Bluebird Promise object instead of taking a callback.
@@ -504,7 +504,7 @@ ENS_0.prototype.resolver = function(name, abi) {
  *        `setName` and `setAddr` is supplied.
  * @returns The resolver object.
  */
-ENS_0.prototype.reverse = function(address, abi) {
+VNS_0.prototype.reverse = function(address, abi) {
     if(address.startsWith("0x"))
       address = address.slice(2);
     return this.resolver(address.toLowerCase() + ".addr.reverse", abi);
@@ -519,7 +519,7 @@ ENS_0.prototype.reverse = function(address, abi) {
  * @param {object} options An optional dict of parameters to pass to web3.
  * @returns A promise that returns the transaction ID when the transaction is mined.
  */
-ENS_0.prototype.setResolver = function(name, addr, params) {
+VNS_0.prototype.setResolver = function(name, addr, params) {
     var node = namehash.hash(name);
 
     return this.registryPromise.then(function(registry) {
@@ -532,7 +532,7 @@ ENS_0.prototype.setResolver = function(name, addr, params) {
  * @param {string} name The name to look up.
  * @returns A promise returning the owner address of the specified name.
  */
-ENS_0.prototype.owner = function(name, callback) {
+VNS_0.prototype.owner = function(name, callback) {
     var node = namehash.hash(name);
 
     return this.registryPromise.then(function(registry) {
@@ -549,7 +549,7 @@ ENS_0.prototype.owner = function(name, callback) {
  * @param {object} options An optional dict of parameters to pass to web3.
  * @returns A promise returning the transaction ID of the transaction, once mined.
  */
-ENS_0.prototype.setOwner = function(name, addr, params) {
+VNS_0.prototype.setOwner = function(name, addr, params) {
     var node = namehash.hash(name);
 
     return this.registryPromise.then(function(registry) {
@@ -560,14 +560,14 @@ ENS_0.prototype.setOwner = function(name, addr, params) {
 /**
  * setSubnodeOwner sets the owner of the specified name. The calling account
  * must be the owner of the parent name in order for this call to succeed -
- * for example, to call setSubnodeOwner on 'foo.bar.eth', the caller must be
- * the owner of 'bar.eth'.
+ * for example, to call setSubnodeOwner on 'foo.bar.vap', the caller must be
+ * the owner of 'bar.vap'.
  * @param {string} name The name to update
  * @param {address} address The address of the new owner
  * @param {object} options An optional dict of parameters to pass to web3.
  * @returns A promise returning the transaction ID of the transaction, once mined.
  */
-ENS_0.prototype.setSubnodeOwner = function(name, addr, params) {
+VNS_0.prototype.setSubnodeOwner = function(name, addr, params) {
     var node = utils.parentNamehash(name);
 
     return this.registryPromise.then(function(registry) {
@@ -575,4 +575,4 @@ ENS_0.prototype.setSubnodeOwner = function(name, addr, params) {
     });
 }
 
-module.exports = ENS;
+module.exports = VNS;

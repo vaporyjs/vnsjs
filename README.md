@@ -4,7 +4,7 @@
 
 **Parameters**
 
--   `ens`  
+-   `vns`  
 -   `node`  
 -   `contract`  
 
@@ -41,20 +41,20 @@ was found. The returned contract object will not be promisifed or otherwise modi
 
 Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A promise for the contract instance.
 
-# ENS
+# VNS
 
-Provides an easy-to-use interface to the Ethereum Name Service.
+Provides an easy-to-use interface to the Vapory Name Service.
 
 Example usage:
 
 ```javascript
-var ENS = require('ethereum-ens');
-var Web3 = require('web3');
+var VNS = require('vapory-vns');
+var Web3 = require('@vapory/web3');
 
 var provider = new Web3.providers.HttpProvider();
-var ens = new ENS(provider);
+var vns = new VNS(provider);
 
-var address = ens.resolver('foo.eth').addr().then(function(addr) { ... });
+var address = vns.resolver('foo.vap').addr().then(function(addr) { ... });
 ```
 Functions that require communicating with the node return promises, rather than
 using callbacks. A promise has a `then` function, which takes a callback and will
@@ -71,19 +71,19 @@ this has the same parameters as web3.
 **Parameters**
 
 -   `provider` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A web3 provider to use to communicate with the blockchain.
--   `address` **address** Optional. The address of the ENS registry. Defaults to the public ENS registry.
+-   `address` **address** Optional. The address of the VNS registry. Defaults to the public VNS registry.
 
 **Meta**
 
--   **author**: Nick Johnson &lt;nick@ethereum.org>
+-   **author**: Nick Johnson &lt;nick@vapory.org>
 -   **license**: LGPL
 
 ## resolver
 
 resolver returns a resolver object for the specified name, throwing
-ENS.NameNotFound if the name does not exist in ENS.
+VNS.NameNotFound if the name does not exist in VNS.
 Resolver objects are wrappers around web3 contract objects, with the
-first argument - always the node ID in an ENS resolver - automatically
+first argument - always the node ID in an VNS resolver - automatically
 supplied. So, to call the `addr(node)` function on a standard resolver,
 you only have to call `addr()`. Returned objects are also 'promisified' - they
 return a Bluebird Promise object instead of taking a callback.
@@ -100,9 +100,9 @@ Returns **any** The resolver object.
 ## reverse
 
 reverse returns a resolver object for the reverse resolution of the specified address,
-throwing ENS.NameNotFound if the reverse record does not exist in ENS.
+throwing VNS.NameNotFound if the reverse record does not exist in VNS.
 Resolver objects are wrappers around web3 contract objects, with the
-first argument - always the node ID in an ENS resolver - automatically
+first argument - always the node ID in an VNS resolver - automatically
 supplied. So, to call the `addr(node)` function on a standard resolver,
 you only have to call `addr()`. Returned objects are also 'promisified' - they
 return a Bluebird Promise object instead of taking a callback.
@@ -163,8 +163,8 @@ Returns **any** A promise returning the transaction ID of the transaction, once 
 
 setSubnodeOwner sets the owner of the specified name. The calling account
 must be the owner of the parent name in order for this call to succeed -
-for example, to call setSubnodeOwner on 'foo.bar.eth', the caller must be
-the owner of 'bar.eth'.
+for example, to call setSubnodeOwner on 'foo.bar.vap', the caller must be
+the owner of 'bar.vap'.
 
 **Parameters**
 

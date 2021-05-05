@@ -1,9 +1,9 @@
 pragma solidity ^0.4.9;
 
 /**
- * The ENS registry contract.
+ * The VNS registry contract.
  */
-contract ENS {
+contract VNS {
     struct Record {
         address owner;
         address resolver;
@@ -27,9 +27,9 @@ contract ENS {
     }
     
     /**
-     * Constructs a new ENS registrar, with the provided address as the owner of the root node.
+     * Constructs a new VNS registrar, with the provided address as the owner of the root node.
      */
-    function ENS(address owner) {
+    function VNS(address owner) {
         records[0].owner = owner;
     }
     
@@ -95,7 +95,7 @@ contract Resolver {
  * address.
  */
 contract PublicResolver is Resolver {
-    ENS ens;
+    VNS vns;
 
     struct Reverse {
         uint256 contentType;
@@ -107,16 +107,16 @@ contract PublicResolver is Resolver {
     mapping(bytes32=>Reverse) reverses;
     
     modifier only_owner(bytes32 node) {
-        if(ens.owner(node) != msg.sender) throw;
+        if(vns.owner(node) != msg.sender) throw;
         _;
     }
 
     /**
      * Constructor.
-     * @param ensAddr The ENS registrar contract.
+     * @param vnsAddr The VNS registrar contract.
      */
-    function PublicResolver(address ensAddr) {
-        ens = ENS(ensAddr);
+    function PublicResolver(address vnsAddr) {
+        vns = VNS(vnsAddr);
     }
 
     /**
@@ -128,7 +128,7 @@ contract PublicResolver is Resolver {
 
     /**
      * Returns true if the specified node has the specified record type.
-     * @param node The ENS node to query.
+     * @param node The VNS node to query.
      * @param kind The record type name, as specified in EIP137.
      * @return True if this resolver has a record of the provided type on the
      *         provided node.
@@ -138,8 +138,8 @@ contract PublicResolver is Resolver {
     }
     
     /**
-     * Returns the address associated with an ENS node.
-     * @param node The ENS node to query.
+     * Returns the address associated with an VNS node.
+     * @param node The VNS node to query.
      * @return The associated address.
      */
     function addr(bytes32 node) constant returns (address ret) {
@@ -149,8 +149,8 @@ contract PublicResolver is Resolver {
     }
 
     /**
-     * Sets the address associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
+     * Sets the address associated with an VNS node.
+     * May only be called by the owner of that node in the VNS registry.
      * @param node The node to update.
      * @param addr The address to set.
      */
@@ -160,8 +160,8 @@ contract PublicResolver is Resolver {
     }
 
     /**
-     * Returns the name associated with an ENS node.
-     * @param node The ENS node to query.
+     * Returns the name associated with an VNS node.
+     * @param node The VNS node to query.
      * @return The associated name.
      */
     function name(bytes32 node) constant returns (string ret) {
@@ -172,8 +172,8 @@ contract PublicResolver is Resolver {
     }
 
     /**
-     * Sets the name associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
+     * Sets the name associated with an VNS node.
+     * May only be called by the owner of that node in the VNS registry.
      * @param node The node to update.
      * @param name The name to set.
      */
@@ -195,35 +195,35 @@ contract PublicResolver is Resolver {
 }
 
 contract ReverseRegistrar {
-    ENS public ens;
+    VNS public vns;
     bytes32 public rootNode;
     
     /**
      * @dev Constructor
-     * @param ensAddr The address of the ENS registry.
+     * @param vnsAddr The address of the VNS registry.
      * @param node The node hash that this registrar governs.
      */
-    function ReverseRegistrar(address ensAddr, bytes32 node) {
-        ens = ENS(ensAddr);
+    function ReverseRegistrar(address vnsAddr, bytes32 node) {
+        vns = VNS(vnsAddr);
         rootNode = node;
     }
 
     /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
+     * @dev Transfers ownership of the reverse VNS record associated with the
      *      calling account.
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @return The ENS node hash of the reverse record.
+     * @param owner The address to set as the owner of the reverse record in VNS.
+     * @return The VNS node hash of the reverse record.
      */
     function claim(address owner) returns (bytes32 node) {
         var label = sha3HexAddress(msg.sender);
-        ens.setSubnodeOwner(rootNode, label, owner);
+        vns.setSubnodeOwner(rootNode, label, owner);
         return sha3(rootNode, label);
     }
 
     /**
      * @dev Returns the node hash for a given account's reverse records.
      * @param addr The address to hash
-     * @return The ENS node hash.
+     * @return The VNS node hash.
      */
     function node(address addr) constant returns (bytes32 ret) {
         return sha3(rootNode, sha3HexAddress(addr));
@@ -231,7 +231,7 @@ contract ReverseRegistrar {
 
     /**
      * @dev An optimised function to compute the sha3 of the lower-case
-     *      hexadecimal representation of an Ethereum address.
+     *      hexadecimal representation of an Vapory address.
      * @param addr The address to hash
      * @return The SHA3 hash of the lower-case hexadecimal encoding of the
      *         input address.
@@ -253,45 +253,45 @@ contract ReverseRegistrar {
     }
 }
 
-contract DeployENS {
-    ENS public ens;
+contract DeployVNS {
+    VNS public vns;
     
-    function DeployENS() {
-        var tld = sha3('eth');
+    function DeployVNS() {
+        var tld = sha3('vap');
         var tldnode = sha3(bytes32(0), tld);
-        ens = new ENS(this);
-        var resolver = new PublicResolver(ens);
+        vns = new VNS(this);
+        var resolver = new PublicResolver(vns);
 
         // Set addr.reverse up with the reverse registrar
         var reversenode = sha3(bytes32(0), sha3('reverse'));
-        var reverseregistrar = new ReverseRegistrar(ens, sha3(reversenode, sha3('addr')));
-        ens.setSubnodeOwner(0, sha3('reverse'), this);
-        ens.setSubnodeOwner(reversenode, sha3('addr'), reverseregistrar);
+        var reverseregistrar = new ReverseRegistrar(vns, sha3(reversenode, sha3('addr')));
+        vns.setSubnodeOwner(0, sha3('reverse'), this);
+        vns.setSubnodeOwner(reversenode, sha3('addr'), reverseregistrar);
 
         // Set up the reverse record for ourselves
         var ournode = reverseregistrar.claim(address(this));
-        ens.setResolver(ournode, resolver);
-        resolver.setName(ournode, "deployer.eth");
+        vns.setResolver(ournode, resolver);
+        resolver.setName(ournode, "deployer.vap");
         resolver.setABI(ournode, 2, hex"789c754e390ac33010fccbd4aa0249a1af98141b2183c0590969b630c27f8f6c12838b74c3dc5347c8da284a78568b0e498bb1c14f4f079577840763231cb2f12bf59f3258ae65479694b7fb03db881559e5b50c7696a5c5d3329b06a6acd85cbfccfcf11fcfaa05e63a6a3f5f113a4a");
         
-        // Set foo.eth up with a resolver, ABI, and addr record
-        ens.setSubnodeOwner(0, tld, this);
-        ens.setSubnodeOwner(tldnode, sha3('foo'), this);
-        var fooDotEth = sha3(tldnode, sha3('foo'));
-        ens.setResolver(fooDotEth, resolver);
-        resolver.setAddr(fooDotEth, this);
-        resolver.setABI(fooDotEth, 1, '[{"constant":true,"inputs":[],"name":"test2","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"inputs":[],"payable":false,"type":"constructor"}]');
+        // Set foo.vap up with a resolver, ABI, and addr record
+        vns.setSubnodeOwner(0, tld, this);
+        vns.setSubnodeOwner(tldnode, sha3('foo'), this);
+        var fooDotVap = sha3(tldnode, sha3('foo'));
+        vns.setResolver(fooDotVap, resolver);
+        resolver.setAddr(fooDotVap, this);
+        resolver.setABI(fooDotVap, 1, '[{"constant":true,"inputs":[],"name":"test2","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"inputs":[],"payable":false,"type":"constructor"}]');
         
-        // Set bar.eth up with a resolver but no addr record, owned by the sender
-        ens.setSubnodeOwner(tldnode, sha3('bar'), this);
-        var barDotEth = sha3(tldnode, sha3('bar'));
-        ens.setResolver(barDotEth, resolver);
-        ens.setOwner(barDotEth, msg.sender);
+        // Set bar.vap up with a resolver but no addr record, owned by the sender
+        vns.setSubnodeOwner(tldnode, sha3('bar'), this);
+        var barDotVap = sha3(tldnode, sha3('bar'));
+        vns.setResolver(barDotVap, resolver);
+        vns.setOwner(barDotVap, msg.sender);
 
-        // Set up baz.eth with a resolver and addr record
-        ens.setSubnodeOwner(tldnode, sha3('baz'), this);
-        var bazDotEth = sha3(tldnode, sha3('baz'));
-        ens.setResolver(bazDotEth, resolver);
-        resolver.setAddr(bazDotEth, this);
+        // Set up baz.vap with a resolver and addr record
+        vns.setSubnodeOwner(tldnode, sha3('baz'), this);
+        var bazDotVap = sha3(tldnode, sha3('baz'));
+        vns.setResolver(bazDotVap, resolver);
+        resolver.setAddr(bazDotVap, this);
     }
 }
